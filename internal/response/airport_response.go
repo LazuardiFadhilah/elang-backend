@@ -13,3 +13,10 @@ type AirportResponse struct {
 	Message string  `json:"message"`
 	Data    Airport `json:"data"`
 }
+
+type AirportListResponse struct {
+	Status  int       `json:"status"`
+	Message string    `json:"message"`
+	Count   int       `json:"count"`
+	Data    []Airport `json:"data"`
+}

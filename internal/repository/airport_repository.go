@@ -2,6 +2,7 @@ package repository
 
 import (
 	"github.com/LazuardiFadhilah/elang-backend/internal/domain"
+	"github.com/google/uuid"
 
 	"gorm.io/gorm"
 )
@@ -10,9 +11,9 @@ type AirportRepository interface {
 	Create(airport *domain.Airport) error
 	FindAll() ([]domain.Airport, error)
 	FindByCode(code string) (*domain.Airport, error)
-	FindByID(id uint) (*domain.Airport, error)
+	FindByID(id uuid.UUID) (*domain.Airport, error)
 	Update(airport *domain.Airport) error
-	Delete(id uint) error
+	Delete(id uuid.UUID) error
 }
 
 type airportRepository struct {
@@ -40,7 +41,7 @@ func (r *airportRepository) FindAll() ([]domain.Airport, error) {
 	return airports, nil
 }
 
-func (r *airportRepository) FindByID(id uint) (*domain.Airport, error) {
+func (r *airportRepository) FindByID(id uuid.UUID) (*domain.Airport, error) {
 	var airport domain.Airport
 	err := r.db.First(&airport, id).Error
 	if err != nil {
@@ -57,7 +58,7 @@ func (r *airportRepository) Update(airport *domain.Airport) error {
 	return nil
 }
 
-func (r *airportRepository) Delete(id uint) error {
+func (r *airportRepository) Delete(id uuid.UUID) error {
 	err := r.db.Delete(&domain.Airport{}, id).Error
 	if err != nil {
 		return err

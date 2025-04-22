@@ -1,7 +1,12 @@
 package service
 
 import (
+	"errors"
 	"fmt"
+	"strings"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 
 	"github.com/LazuardiFadhilah/elang-backend/internal/domain"
 	"github.com/LazuardiFadhilah/elang-backend/internal/repository"
@@ -11,9 +16,9 @@ type AirportService interface {
 	CreateAirport(airport *domain.Airport) (*domain.Airport, error)
 	GetAllAirports() ([]domain.Airport, error)
 	GetAirportByCode(code string) (*domain.Airport, error)
-	GetAirportByID(id uint) (*domain.Airport, error)
+	GetAirportByID(id uuid.UUID) (*domain.Airport, error)
 	UpdateAirport(airport *domain.Airport) error
-	DeleteAirport(id uint) error
+	DeleteAirport(id uuid.UUID) error
 }
 
 type airportService struct {
@@ -58,14 +63,46 @@ func (s *airportService) GetAllAirports() ([]domain.Airport, error) {
 	return s.repo.FindAll()
 }
 
-func (s *airportService) GetAirportByID(id uint) (*domain.Airport, error) {
+func (s *airportService) GetAirportByID(id uuid.UUID) (*domain.Airport, error) {
 	return s.repo.FindByID(id)
 }
 
 func (s *airportService) UpdateAirport(airport *domain.Airport) error {
-	return s.repo.Update(airport)
+	existing, err := s.repo.FindByID(airport.ID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fmt.Errorf("airport not found")
+		}
+		return err
+	}
+
+	if airport.Name == "" {
+		airport.Name = existing.Name
+	}
+
+	if airport.Code == "" {
+		airport.Code = existing.Code
+	}
+	if len(airport.Code) != 3 || strings.ToUpper(airport.Code) != airport.Code {
+		return fmt.Errorf("code must be 3 uppercase characters")
+	}
+	if airport.City == "" {
+		airport.City = existing.City
+	}
+	if airport.Country == "" {
+		airport.Country = existing.Country
+	}
+
+	return s.repo.Update(existing)
 }
 
-func (s *airportService) DeleteAirport(id uint) error {
-	return s.repo.Delete(id)
+func (s *airportService) DeleteAirport(id uuid.UUID) error {
+	existing, err := s.repo.FindByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fmt.Errorf("airport not found")
+		}
+		return err
+	}
+	return s.repo.Delete(existing.ID)
 }
