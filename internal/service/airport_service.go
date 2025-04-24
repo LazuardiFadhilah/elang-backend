@@ -93,7 +93,7 @@ func (s *airportService) UpdateAirport(airport *domain.Airport) error {
 		airport.Country = existing.Country
 	}
 
-	return s.repo.Update(existing)
+	return s.repo.Update(airport)
 }
 
 func (s *airportService) DeleteAirport(id uuid.UUID) error {

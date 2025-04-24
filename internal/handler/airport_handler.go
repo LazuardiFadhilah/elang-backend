@@ -152,6 +152,20 @@ func (h *AirportHandler) UpdateAirport(c *gin.Context) {
 
 	err = h.service.UpdateAirport(&input)
 	if err != nil {
+		if err.Error() == "code must be 3 uppercase characters" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"Message": "INVALID_CODE_FORMAT",
+				"status":  http.StatusBadRequest,
+			})
+			return
+		}
+		if err.Error() == "airport not found" {
+			c.JSON(http.StatusNotFound, gin.H{
+				"Message": "AIRPORT_NOT_FOUND",
+				"status":  http.StatusNotFound,
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"Message": "FAILED_TO_UPDATE_AIRPORT",
 			"status":  http.StatusInternalServerError,

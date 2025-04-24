@@ -19,14 +19,18 @@ func main() {
 
 	// Auto migrate models
 	config.DB.AutoMigrate(&domain.Airport{})
+	config.DB.AutoMigrate(&domain.Airline{})
 
 	// Inisialisasi Repository, Service, Handler
 	airportRepo := repository.NewAirportRepository(config.DB)
 	airportService := service.NewAirportService(airportRepo)
 	airportHandler := handler.NewAirportHandler(airportService)
 
+	airlineRepo := repository.NewAirlineRepository(config.DB)
+	airlineService := service.NewAirlineService(airlineRepo)
+	airlineHandler := handler.NewAirlineHandler(airlineService)
 	// Setup Router
-	r := router.SetupRouter(airportHandler)
+	r := router.SetupRouter(airportHandler, airlineHandler)
 
 	// Jalankan server
 	port := os.Getenv("PORT")
