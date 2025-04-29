@@ -9,8 +9,7 @@ import (
 
 type FlightRepository interface {
 	Create(airport *domain.Flight) error
-	FindAll() ([]domain.Flight, error)
-	FindByCode(code string) (*domain.Flight, error)
+	FindAll(filter domain.FlightFilter) ([]domain.Flight, error)
 	FindByID(id uuid.UUID) (*domain.Flight, error)
 	Update(airport *domain.Flight) error
 	Delete(id uuid.UUID) error
@@ -32,9 +31,33 @@ func (r *flightRepository) Create(airport *domain.Flight) error {
 	return nil
 }
 
-func (r *flightRepository) FindAll() ([]domain.Flight, error) {
+func (r *flightRepository) FindAll(filter domain.FlightFilter) ([]domain.Flight, error) {
 	var flights []domain.Flight
-	err := r.db.Preload("Airline").Preload("Depature_airport").Preload("Arrival_airport").Preload("Transit_airport").Preload("Flight_tiers").Find(&flights).Error
+	query := r.db.Model(&domain.Flight{})
+	if filter.Code != "" {
+		query = query.Where("flight_code = ?", filter.Code)
+	}
+	if filter.Depature_airport_id != "" {
+		query = query.Where("depature_airport_id = ?", filter.Depature_airport_id)
+	}
+	if filter.Arrival_airport_id != "" {
+		query = query.Where("arrival_airport_id = ?", filter.Arrival_airport_id)
+	}
+	if filter.Airline_id != "" {
+		query = query.Where("airline_id = ?", filter.Airline_id)
+	}
+	if filter.Is_transit {
+		query = query.Where("is_transit = ?", filter.Is_transit)
+	}
+	if filter.MinPrice != "" && filter.MaxPrice != "" {
+		query = query.Where("base_price BETWEEN ? AND ?", filter.MinPrice, filter.MaxPrice)
+	} else if filter.MinPrice != "" {
+		query = query.Where("base_price >= ?", filter.MinPrice)
+	}
+	if filter.MaxPrice != "" {
+		query = query.Where("base_price <= ?", filter.MaxPrice)
+	}
+	err := query.Find(&flights).Error
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +66,7 @@ func (r *flightRepository) FindAll() ([]domain.Flight, error) {
 
 func (r *flightRepository) FindByID(id uuid.UUID) (*domain.Flight, error) {
 	var flight domain.Flight
-	err := r.db.Preload("Airline").Preload("Depature_airport").Preload("Arrival_airport").Preload("Transit_airport").Preload("Flight_tiers").Find(&flight, "id = ?", id).Error
+	err := r.db.Find(&flight, "id = ?", id).Error
 	if err != nil {
 		return nil, err
 	}

@@ -5,10 +5,13 @@ import (
 
 	"github.com/LazuardiFadhilah/elang-backend/internal/domain"
 	"github.com/LazuardiFadhilah/elang-backend/internal/repository"
+	"github.com/google/uuid"
 )
 
 type FlightService interface {
 	CreateFlight(flight *domain.Flight) (*domain.Flight, error)
+	FindAllFlights(filter domain.FlightFilter) ([]domain.Flight, error)
+	FindByID(id string) (*domain.Flight, error)
 }
 
 type flightService struct {
@@ -44,4 +47,21 @@ func (s *flightService) CreateFlight(flight *domain.Flight) (*domain.Flight, err
 		return nil, fmt.Errorf("failed to create flight: %w", err)
 	}
 	return flight, nil
+}
+
+func (s *flightService) FindAllFlights(filter domain.FlightFilter) ([]domain.Flight, error) {
+	return s.repo.FindAll(filter)
+}
+
+func (s *flightService) FindByID(id string) (*domain.Flight, error) {
+	uuidID, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid UUID format: %w", err)
+	}
+
+	airline, err := s.repo.FindByID(uuidID)
+	if err != nil {
+		return nil, err
+	}
+	return airline, nil
 }

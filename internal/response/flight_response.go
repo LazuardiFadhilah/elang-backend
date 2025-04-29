@@ -38,3 +38,10 @@ type FlightResponse struct {
 	Message string `json:"message"`
 	Data    Flight `json:"data"`
 }
+
+type FlightListResponse struct {
+	Status  int      `json:"status"`
+	Message string   `json:"message"`
+	Count   int      `json:"count"`
+	Data    []Flight `json:"data"`
+}

@@ -28,6 +28,8 @@ func SetupRouter(airportHandler *handler.AirportHandler, airlineHandler *handler
 		v1.DELETE("/airlines/:id", airlineHandler.DeleteAirline)
 
 		v1.POST("/flights", flightHandler.CreateFlight)
+		v1.GET("/flights", flightHandler.GetFlights)
+		v1.GET("/flights/:id", flightHandler.GetFlightByID)
 	}
 
 	return r
