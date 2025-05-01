@@ -1,7 +1,5 @@
 package response
 
-import "github.com/LazuardiFadhilah/elang-backend/internal/domain"
-
 type AirlineFlightResponse struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
@@ -19,6 +17,12 @@ type ArrivalFlightResponse struct {
 	Code string `json:"code"`
 }
 
+type TransitFlightResponse struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Code string `json:"code"`
+}
+
 type Flight struct {
 	ID                 string                 `json:"id"`
 	Flight_code        string                 `json:"flight_code"`
@@ -29,7 +33,7 @@ type Flight struct {
 	Arrival_time       string                 `json:"arrival_time"`
 	Duration           string                 `json:"duration"`
 	Is_transit         bool                   `json:"is_transit"`
-	Transit_airport_id *domain.Airport        `json:"transit_airport_id"`
+	Transit_airport_id *TransitFlightResponse `json:"transit_airport"`
 	Base_price         int                    `json:"base_price"`
 }
 

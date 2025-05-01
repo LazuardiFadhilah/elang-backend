@@ -3,11 +3,13 @@ package handler
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/LazuardiFadhilah/elang-backend/internal/domain"
 	"github.com/LazuardiFadhilah/elang-backend/internal/response"
 	"github.com/LazuardiFadhilah/elang-backend/internal/service"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type FlightHandler struct {
@@ -129,6 +131,26 @@ func (h *FlightHandler) CreateFlight(c *gin.Context) {
 		return
 	}
 
+	var transitAirport *domain.Airport
+	if input.Is_transit && input.Transit_airport_id != nil {
+		transitAirport, err = h.airportService.GetAirportByID(*input.Transit_airport_id)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"Message": "TRANSIT_AIRPORT_NOT_FOUND",
+				"Status":  http.StatusBadRequest,
+			})
+			return
+		}
+	}
+
+	var transitResponse *response.TransitFlightResponse
+	if transitAirport != nil {
+		transitResponse = &response.TransitFlightResponse{
+			ID:   transitAirport.ID.String(),
+			Name: transitAirport.Name,
+			Code: transitAirport.Code,
+		}
+	}
 	response := response.FlightResponse{
 		Status:  http.StatusOK,
 		Message: "SUCCESS_CREATE_FLIGHT",
@@ -152,7 +174,7 @@ func (h *FlightHandler) CreateFlight(c *gin.Context) {
 			Arrival_time:       createdFlight.Arrival_time.Format("2006-01-02 15:04:05"),
 			Duration:           createdFlight.Duration,
 			Is_transit:         createdFlight.Is_transit,
-			Transit_airport_id: createdFlight.Transit_airport,
+			Transit_airport_id: transitResponse,
 			Base_price:         createdFlight.Base_price,
 		},
 	}
@@ -207,6 +229,25 @@ func (h *FlightHandler) GetFlights(c *gin.Context) {
 			})
 			return
 		}
+		var transitAirport *domain.Airport
+		if flight.Is_transit && flight.Transit_airport_id != nil {
+			transitAirport, err = h.airportService.GetAirportByID(*flight.Transit_airport_id)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"Message": "TRANSIT_AIRPORT_NOT_FOUND",
+					"Status":  http.StatusBadRequest,
+				})
+				return
+			}
+		}
+		var transitResponse *response.TransitFlightResponse
+		if transitAirport != nil {
+			transitResponse = &response.TransitFlightResponse{
+				ID:   transitAirport.ID.String(),
+				Name: transitAirport.Name,
+				Code: transitAirport.Code,
+			}
+		}
 		flightResponses = append(flightResponses, response.Flight{
 			ID:          flight.ID.String(),
 			Flight_code: flight.Flight_code,
@@ -228,7 +269,7 @@ func (h *FlightHandler) GetFlights(c *gin.Context) {
 			Arrival_time:       flight.Arrival_time.Format("2006-01-02 15:04:05"),
 			Duration:           flight.Duration,
 			Is_transit:         flight.Is_transit,
-			Transit_airport_id: flight.Transit_airport,
+			Transit_airport_id: transitResponse,
 			Base_price:         flight.Base_price,
 		})
 	}
@@ -278,6 +319,26 @@ func (h *FlightHandler) GetFlightByID(c *gin.Context) {
 		})
 		return
 	}
+
+	var transitAirport *domain.Airport
+	if flight.Is_transit && flight.Transit_airport_id != nil {
+		transitAirport, err = h.airportService.GetAirportByID(*flight.Transit_airport_id)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"Message": "TRANSIT_AIRPORT_NOT_FOUND",
+				"Status":  http.StatusBadRequest,
+			})
+			return
+		}
+	}
+	var transitResponse *response.TransitFlightResponse
+	if transitAirport != nil {
+		transitResponse = &response.TransitFlightResponse{
+			ID:   transitAirport.ID.String(),
+			Name: transitAirport.Name,
+			Code: transitAirport.Code,
+		}
+	}
 	response := response.FlightResponse{
 		Status:  http.StatusOK,
 		Message: "SUCCESS_GET_FLIGHT",
@@ -302,10 +363,165 @@ func (h *FlightHandler) GetFlightByID(c *gin.Context) {
 			Arrival_time:       flight.Arrival_time.Format("2006-01-02 15:04:05"),
 			Duration:           flight.Duration,
 			Is_transit:         flight.Is_transit,
-			Transit_airport_id: flight.Transit_airport,
+			Transit_airport_id: transitResponse,
 			Base_price:         flight.Base_price,
 		},
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+func (h *FlightHandler) UpdateFlight(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"Message": "INVALID_FLIGHT_ID",
+			"Status":  http.StatusBadRequest,
+		})
+		return
+	}
+
+	var input domain.Flight
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"Message": "INVALID_JSON_BODY",
+			"Status":  http.StatusBadRequest,
+		})
+		return
+	}
+	input.ID = id
+
+	existingFlight, err := h.service.FindByID(id.String())
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"Message": "INVALID_FLIGHT_ID",
+			"Status":  http.StatusBadRequest,
+		})
+		return
+	}
+
+	if input.Airline_id == uuid.Nil {
+		input.Airline_id = existingFlight.Airline_id
+	}
+
+	if input.Depature_airport_id == uuid.Nil {
+		input.Depature_airport_id = existingFlight.Depature_airport_id
+	}
+
+	if input.Arrival_airport_id == uuid.Nil {
+		input.Arrival_airport_id = existingFlight.Arrival_airport_id
+	}
+
+	if input.Depature_time == (time.Time{}) {
+		input.Depature_time = existingFlight.Depature_time
+	}
+	if input.Arrival_time == (time.Time{}) {
+		input.Arrival_time = existingFlight.Arrival_time
+	}
+
+	if input.Base_price == 0 {
+		input.Base_price = existingFlight.Base_price
+	}
+
+	duration := input.Arrival_time.Sub(input.Depature_time)
+	if duration < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"Message": "INVALID_DEPATURE_ARRIVAL_TIME",
+			"status":  http.StatusBadRequest,
+		})
+		return
+	}
+	input.Duration = duration.String()
+
+	// ✅ Validasi Airline
+	existingAirline, err := h.airlineService.GetAirlineByID(input.Airline_id.String())
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"Message": "AIRLINE_NOT_FOUND",
+			"Status":  http.StatusBadRequest,
+		})
+		return
+	}
+
+	// ✅ Validasi Depature Airport
+	existingDepature, err := h.airportService.GetAirportByID(input.Depature_airport_id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"Message": "DEPATURE_AIRPORT_NOT_FOUND",
+			"Status":  http.StatusBadRequest,
+		})
+		return
+	}
+
+	// ✅ Validasi Arrival Airport
+	existingArrival, err := h.airportService.GetAirportByID(input.Arrival_airport_id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"Message": "ARRIVAL_AIRPORT_NOT_FOUND",
+			"Status":  http.StatusBadRequest,
+		})
+		return
+	}
+	var transitAirport *domain.Airport
+	if input.Is_transit && input.Transit_airport_id != nil {
+		transitAirport, err = h.airportService.GetAirportByID(*input.Transit_airport_id)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"Message": "TRANSIT_AIRPORT_NOT_FOUND",
+				"Status":  http.StatusBadRequest,
+			})
+			return
+		}
+	}
+	var transitResponse *response.TransitFlightResponse
+	if transitAirport != nil {
+		transitResponse = &response.TransitFlightResponse{
+			ID:   transitAirport.ID.String(),
+			Name: transitAirport.Name,
+			Code: transitAirport.Code,
+		}
+	}
+
+	// ✅ Baru update kalau semua valid
+	err = h.service.UpdateFlight(&input)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"Message": "FAILED_TO_UPDATE_FLIGHT",
+			"Status":  http.StatusInternalServerError,
+		})
+		return
+	}
+
+	// ✅ Response
+	res := response.FlightResponse{
+		Message: "SUCCESS_UPDATE_FLIGHT",
+		Status:  http.StatusOK,
+		Data: response.Flight{
+			ID:          input.ID.String(),
+			Flight_code: input.Flight_code,
+			Airline: response.AirlineFlightResponse{
+				ID:   existingAirline.ID.String(),
+				Name: existingAirline.Name,
+			},
+			Depature: response.DepatureFlightResponse{
+				ID:   existingDepature.ID.String(),
+				Name: existingDepature.Name,
+				Code: existingDepature.Code,
+			},
+			Arrival_airport_id: response.ArrivalFlightResponse{
+				ID:   existingArrival.ID.String(),
+				Name: existingArrival.Name,
+				Code: existingArrival.Code,
+			},
+			Depature_time:      input.Depature_time.String(),
+			Arrival_time:       input.Arrival_time.String(),
+			Duration:           input.Duration,
+			Is_transit:         input.Is_transit,
+			Transit_airport_id: transitResponse,
+			Base_price:         input.Base_price,
+		},
+	}
+
+	c.JSON(http.StatusOK, res)
 }

@@ -73,8 +73,8 @@ func (r *flightRepository) FindByID(id uuid.UUID) (*domain.Flight, error) {
 	return &flight, nil
 }
 
-func (r *flightRepository) Update(airport *domain.Flight) error {
-	err := r.db.Save(airport).Error
+func (r *flightRepository) Update(flight *domain.Flight) error {
+	err := r.db.Save(flight).Error
 	if err != nil {
 		return err
 	}
