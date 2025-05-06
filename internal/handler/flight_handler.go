@@ -525,3 +525,111 @@ func (h *FlightHandler) UpdateFlight(c *gin.Context) {
 
 	c.JSON(http.StatusOK, res)
 }
+
+func (h *FlightHandler) DeleteFlight(c *gin.Context) {
+	idParam := c.Param("id")
+
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"Message": "INVALID_AIRPORT_ID",
+			"status":  http.StatusBadRequest,
+		})
+		return
+	}
+
+	existingFlight, err := h.service.FindByID(id.String())
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"Message": "FLIGHT_NOT_FOUND",
+			"status":  http.StatusBadRequest,
+		})
+		return
+	}
+
+	existingAirline, err := h.airlineService.GetAirlineByID(existingFlight.Airline_id.String())
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"Message": "AIRLINE_NOT_FOUND",
+			"Status":  http.StatusBadRequest,
+		})
+		return
+	}
+
+	// ✅ Validasi Depature Airport
+	existingDepature, err := h.airportService.GetAirportByID(existingFlight.Depature_airport_id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"Message": "DEPATURE_AIRPORT_NOT_FOUND",
+			"Status":  http.StatusBadRequest,
+		})
+		return
+	}
+
+	// ✅ Validasi Arrival Airport
+	existingArrival, err := h.airportService.GetAirportByID(existingFlight.Arrival_airport_id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"Message": "ARRIVAL_AIRPORT_NOT_FOUND",
+			"Status":  http.StatusBadRequest,
+		})
+		return
+	}
+
+	var transitAirport *domain.Airport
+	if existingFlight.Is_transit && existingFlight.Transit_airport_id != nil {
+		transitAirport, err = h.airportService.GetAirportByID(*existingFlight.Transit_airport_id)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"Message": "TRANSIT_AIRPORT_NOT_FOUND",
+				"Status":  http.StatusBadRequest,
+			})
+			return
+		}
+	}
+	var transitResponse *response.TransitFlightResponse
+	if transitAirport != nil {
+		transitResponse = &response.TransitFlightResponse{
+			ID:   transitAirport.ID.String(),
+			Name: transitAirport.Name,
+			Code: transitAirport.Code,
+		}
+	}
+
+	err = h.service.DeleteFlight(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"Message": "FAILED_TO_DELETE_AIRPORT",
+			"status":  http.StatusInternalServerError,
+		})
+		return
+	}
+
+	response := response.FlightResponse{
+		Status:  http.StatusOK,
+		Message: "SUCCESS_DELETED_DATA",
+		Data: response.Flight{
+			ID:          id.String(),
+			Flight_code: existingFlight.Flight_code,
+			Airline: response.AirlineFlightResponse{
+				ID:   existingAirline.ID.String(),
+				Name: existingAirline.Name,
+			},
+			Depature: response.DepatureFlightResponse{
+				ID:   existingDepature.ID.String(),
+				Name: existingDepature.Name,
+				Code: existingDepature.Code,
+			},
+			Arrival_airport_id: response.ArrivalFlightResponse{
+				ID:   existingArrival.ID.String(),
+				Name: existingArrival.Name,
+				Code: existingArrival.Code,
+			},
+			Duration:           existingFlight.Duration,
+			Is_transit:         existingFlight.Is_transit,
+			Transit_airport_id: transitResponse,
+			Base_price:         existingFlight.Base_price,
+		},
+	}
+	c.JSON(http.StatusOK, response)
+}

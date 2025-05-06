@@ -16,6 +16,7 @@ type FlightService interface {
 	FindAllFlights(filter domain.FlightFilter) ([]domain.Flight, error)
 	FindByID(id string) (*domain.Flight, error)
 	UpdateFlight(flight *domain.Flight) error
+	DeleteFlight(id uuid.UUID) error
 }
 
 type flightService struct {
@@ -105,4 +106,15 @@ func (s *flightService) UpdateFlight(flight *domain.Flight) error {
 	}
 
 	return s.repo.Update(flight)
+}
+
+func (s *flightService) DeleteFlight(id uuid.UUID) error {
+	existing, err := s.repo.FindByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fmt.Errorf("airport not found")
+		}
+		return err
+	}
+	return s.repo.Delete(existing.ID)
 }

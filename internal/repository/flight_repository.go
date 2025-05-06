@@ -82,7 +82,7 @@ func (r *flightRepository) Update(flight *domain.Flight) error {
 }
 
 func (r *flightRepository) Delete(id uuid.UUID) error {
-	err := r.db.Delete(&domain.Airport{}, id).Error
+	err := r.db.Delete(&domain.Flight{}, id).Error
 	if err != nil {
 		return err
 	}
