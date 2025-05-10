@@ -21,9 +21,10 @@ func main() {
 	config.DB.AutoMigrate(&domain.Airport{})
 	config.DB.AutoMigrate(&domain.Airline{})
 	config.DB.AutoMigrate(&domain.Flight{})
+	config.DB.AutoMigrate(&domain.FlightTier{})
 
 	// Auto migrate models
-	if err := config.DB.AutoMigrate(&domain.Airport{}, &domain.Airline{}, &domain.Flight{}); err != nil {
+	if err := config.DB.AutoMigrate(&domain.Airport{}, &domain.Airline{}, &domain.Flight{}, &domain.FlightTier{}); err != nil {
 		log.Fatalf("Error during AutoMigrate: %v", err)
 	} else {
 		fmt.Println("Auto migration successful")
@@ -42,8 +43,12 @@ func main() {
 	flightService := service.NewFlightService(flightRepo, airportRepo, airlineRepo)
 	flightHandler := handler.NewFlightHandler(flightService, airlineService, airportService)
 
+	flightTierRepo := repository.NewFlightTierRepository(config.DB)
+	flightTierService := service.NewFlightTierService(flightTierRepo, flightRepo)
+	flightTierHandler := handler.NewFlightTierHandler(flightTierService, flightService)
+
 	// Setup Router
-	r := router.SetupRouter(airportHandler, airlineHandler, flightHandler)
+	r := router.SetupRouter(airportHandler, airlineHandler, flightHandler, flightTierHandler)
 
 	// Jalankan server
 	port := os.Getenv("PORT")

@@ -5,7 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter(airportHandler *handler.AirportHandler, airlineHandler *handler.AirlineHandler, flightHandler *handler.FlightHandler) *gin.Engine {
+func SetupRouter(airportHandler *handler.AirportHandler, airlineHandler *handler.AirlineHandler, flightHandler *handler.FlightHandler, flightTIerHandler *handler.FlightTierHandler) *gin.Engine {
 	r := gin.Default()
 
 	// Health check
@@ -32,6 +32,8 @@ func SetupRouter(airportHandler *handler.AirportHandler, airlineHandler *handler
 		v1.GET("/flights/:id", flightHandler.GetFlightByID)
 		v1.PUT("/flights/:id", flightHandler.UpdateFlight)
 		v1.DELETE("flights/:id", flightHandler.DeleteFlight)
+
+		v1.POST("/flights/:id/flight-tiers", flightTIerHandler.CreateFlightTier)
 	}
 
 	return r
